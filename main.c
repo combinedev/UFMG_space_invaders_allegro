@@ -19,6 +19,11 @@ int main(void) {
     if (!display) return -1;
 
     /* 3. Load and initialize assets -------------------------------------------------- */
+
+    Explosion explosion;
+    explosion.active = false;
+    explosion.start_time = 0.0;
+
     Player p1;
     p1.ship_bitmap = al_load_bitmap("assets/player.png");
     if (!p1.ship_bitmap) {
@@ -26,7 +31,14 @@ int main(void) {
         return 1;
     }
     p1.x = WIN_W / 2;
-    p1.y = WIN_H - 50;
+    p1.y = WIN_H -50;
+
+    Projectile p_proj;
+    p_proj.projectile_bitmap = al_load_bitmap("assets/player_projectile.png");
+    if (!p1.ship_bitmap) {
+        fprintf(stderr, "Failed to load assets/player_projectile.png, check the path\n");
+        return 1;
+    }
 
     float posx = 0, posy = 0;
     Alien matrix[5][10];
@@ -97,6 +109,7 @@ int main(void) {
     bool running = true, redraw;
     bool A_pressed = false;
     bool D_pressed = false;
+    bool game_over = false;
 
     while (running) {
         /* --- handle all waiting events first --- */
@@ -115,6 +128,13 @@ int main(void) {
                         //close window
                     case ALLEGRO_KEY_ESCAPE: running = false;
                         break;
+                    case ALLEGRO_KEY_SPACE:
+                        if (!p_proj.alive) {
+                            p_proj.alive = true;
+                            p_proj.y = p1.y;
+                            p_proj.x = p1.x + al_get_bitmap_width(p1.ship_bitmap)/2;
+                            break;
+                        }
                 }
             }
             if (ev.type == ALLEGRO_EVENT_KEY_UP) {
@@ -127,7 +147,7 @@ int main(void) {
             }
             if (ev.type == ALLEGRO_EVENT_TIMER) {
                 if (ev.timer.source == alien_timer) {
-                    update_aliens(matrix);  // Only runs every 0.5 seconds
+                    update_aliens(matrix, &game_over, &p1);  // Only runs every 0.5 seconds
                 }
                 else if (ev.timer.source == alien_anim_timer) {
                     // Switch all alive aliens to animation frame
@@ -144,6 +164,12 @@ int main(void) {
             if (ev.timer.source == game_timer) {
                 redraw = true;
                 update_player(&A_pressed, &D_pressed, &p1);
+                if (p_proj.alive) {
+                    update_projectile(&p_proj, matrix, &explosion);
+                }
+                if (explosion.active && al_get_time() - explosion.start_time >= 1) {
+                    explosion.active = false;
+                }
             }
 
         }
@@ -157,6 +183,9 @@ int main(void) {
             }
             alien_animating = false;
         }
+        if (game_over) {
+            running = false;
+        }
 
         //Draw the game state--------------------------------------------------------- */
         if (redraw && al_is_event_queue_empty(q)) {
@@ -167,17 +196,19 @@ int main(void) {
             int bmp_h = al_get_bitmap_height(p1.ship_bitmap);
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 10; j++) {
-                    al_draw_scaled_bitmap(
-                        matrix[i][j].alien_bitmap[matrix[i][j].frame],
-                        0,
-                        0,
-                        al_get_bitmap_width(matrix[i][j].alien_bitmap[matrix[i][j].frame]),
-                        al_get_bitmap_height(matrix[i][j].alien_bitmap[matrix[i][j].frame]),
-                        matrix[i][j].x,
-                        matrix[i][j].y,
-                        al_get_bitmap_width(matrix[i][j].alien_bitmap[matrix[i][j].frame]) * 1.5,
-                        al_get_bitmap_height(matrix[i][j].alien_bitmap[matrix[i][j].frame])*1.5, 0
-                        );
+                    if (matrix[i][j].alive) {
+                        al_draw_scaled_bitmap(
+                            matrix[i][j].alien_bitmap[matrix[i][j].frame],
+                            0,
+                            0,
+                            al_get_bitmap_width(matrix[i][j].alien_bitmap[matrix[i][j].frame]),
+                            al_get_bitmap_height(matrix[i][j].alien_bitmap[matrix[i][j].frame]),
+                            matrix[i][j].x,
+                            matrix[i][j].y,
+                            al_get_bitmap_width(matrix[i][j].alien_bitmap[matrix[i][j].frame]) * 1.5,
+                            al_get_bitmap_height(matrix[i][j].alien_bitmap[matrix[i][j].frame])*1.5, 0
+                            );
+                    }
                 }
             }
             al_draw_tinted_scaled_rotated_bitmap(
@@ -190,6 +221,30 @@ int main(void) {
                 p1.angle * ALLEGRO_PI / 180.0f, // rotation in radians
                 0 // no flags
             );
+            if (explosion.active) {
+                al_draw_scaled_bitmap(explosion.explosion_bitmap,
+                    0,
+                    0,
+                    al_get_bitmap_width(explosion.explosion_bitmap),
+                    al_get_bitmap_height(explosion.explosion_bitmap),
+                    explosion.x,
+                    explosion.y,
+                    al_get_bitmap_width(explosion.explosion_bitmap)*1.5,
+                    al_get_bitmap_height(explosion.explosion_bitmap)*1.5,
+                    0);
+            }
+            if (p_proj.alive) {
+                al_draw_scaled_bitmap(p_proj.projectile_bitmap,
+                    0,
+                    0,
+                    al_get_bitmap_width(p_proj.projectile_bitmap),
+                    al_get_bitmap_height(p_proj.projectile_bitmap),
+                    p_proj.x,
+                    p_proj.y,
+                    al_get_bitmap_width(p_proj.projectile_bitmap)*3,
+                    al_get_bitmap_height(p_proj.projectile_bitmap)*3,
+                    0);
+            }
 
             al_flip_display();
         }

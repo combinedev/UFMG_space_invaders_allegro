@@ -13,8 +13,9 @@
 #define FRICTION  0.3f  // how fast it slows down
 #define MAX_TILT  10.0f      // max angle in degrees
 #define TILT_SPEED  2.5f     // how fast tilt angular changes per frame
-#define move_speed 45 // Pixels per move
-#define move_delay 500 // Frames/tics between moves
+#define alien_move_speed 45 // Pixels per move
+#define alien_move_delay 500 // Frames/tics between moves
+
 
 typedef struct Player {
     ALLEGRO_BITMAP *ship_bitmap;
@@ -32,6 +33,22 @@ typedef struct Alien {
     int frame;
 }Alien;
 
-void update_aliens(Alien matrix[5][10]);
+typedef struct Projectile {
+    ALLEGRO_BITMAP *projectile_bitmap;
+    float x;
+    float y;
+    float vy;
+    bool alive;
+}Projectile;
+typedef struct Explosion {
+    ALLEGRO_BITMAP *explosion_bitmap;
+    float x;
+    float y;
+    bool active;
+    float start_time;
+}Explosion;
+void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion);
+bool check_collision(Projectile *proj, Alien *alien);
 #endif //OBJECTS_H

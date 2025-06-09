@@ -7,7 +7,27 @@
 
 #include <limits.h> // for INT_MAX and INT_MIN
 
-void update_aliens(Alien matrix[5][10]) {
+bool check_collision(Projectile *proj, Alien *alien) { //Explain AABB collision algorithm logic
+    if (!proj->alive || !alien->alive)
+        return false;
+
+    // Get scaled projectile dimensions
+    int proj_w = al_get_bitmap_width(proj->projectile_bitmap) * 3.0;
+    int proj_h = al_get_bitmap_height(proj->projectile_bitmap) * 3.0;
+
+    // Get scaled alien dimensions
+    int alien_w = al_get_bitmap_width(alien->alien_bitmap[alien->frame]) * 1.5;
+    int alien_h = al_get_bitmap_height(alien->alien_bitmap[alien->frame]) * 1.5;
+
+    // Bounding box test (AABB)
+    return (proj->x < alien->x + alien_w &&
+            proj->x + proj_w > alien->x &&
+            proj->y < alien->y + alien_h &&
+            proj->y + proj_h > alien->y);
+}
+
+
+void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
     static int direction = 1; // 1 = right, -1 = left
     const int COLS = 10;
     const int ROWS = 5;
@@ -43,9 +63,9 @@ void update_aliens(Alien matrix[5][10]) {
 
     // Border collision detection
     bool hit_border = false;
-    if (direction == 1 && rightmost_x + move_speed > WIN_W) {
+    if (direction == 1 && rightmost_x + alien_move_speed > WIN_W) {
         hit_border = true;
-    } else if (direction == -1 && leftmost_x - move_speed < 0) {
+    } else if (direction == -1 && leftmost_x - alien_move_speed < 0) {
         hit_border = true;
     }
 
@@ -63,7 +83,31 @@ void update_aliens(Alien matrix[5][10]) {
             for (int c = 0; c < COLS; ++c) {
                 Alien *a = &matrix[r][c];
                 if (!a->alive) continue;
-                a->x += direction * move_speed;
+                a->x += direction * alien_move_speed;
+                // 1. Check ground collision
+                if (matrix[r][c].y + al_get_bitmap_height(matrix[r][c].alien_bitmap[matrix[r][c].frame])*1.5 >= WIN_H) {
+                    *game_over = true;
+                    return;
+                }
+                // 2. Check player collision (AABB)
+                float scale = 1.5f;
+
+                float alien_w = al_get_bitmap_width(matrix[r][c].alien_bitmap[matrix[r][c].frame]) * scale;
+                float alien_h = al_get_bitmap_height(matrix[r][c].alien_bitmap[matrix[r][c].frame]) * scale;
+
+                float player_w = al_get_bitmap_width(p1->ship_bitmap) * scale;
+                float player_h = al_get_bitmap_height(p1->ship_bitmap) * scale;
+
+                bool collision_with_player =
+                    matrix[r][c].x < p1->x + player_w &&
+                    matrix[r][c].x + alien_w > p1->x &&
+                    matrix[r][c].y < p1->y + player_h &&
+                    matrix[r][c].y + alien_h > p1->y;
+
+                if (collision_with_player) {
+                    *game_over = true;
+                    return;
+                }
             }
         }
     }
@@ -122,4 +166,32 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1) {
         p1->x = WIN_W - al_get_bitmap_width(p1->ship_bitmap);
         p1->vx = 0;
     }
+}
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion) {
+    p->vy = 0;
+    p->vy -= ACCEL*8;
+    if (p->vy < -MAX_SPEED) //truncation
+        p->vy = -MAX_SPEED;
+    p->y += p->vy;
+    //hit the border
+    if (p->y < 0) {
+        p->alive = false;
+    }
+    //hit alien
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 10; j++) {
+            if (check_collision(p, &matrix[i][j])) {
+                matrix[i][j].alive = false;
+                explosion->x = matrix[i][j].x;
+                explosion->y = matrix[i][j].y;
+                explosion->explosion_bitmap = al_load_bitmap("assets/enemy_explosion.png"); // load once or reuse
+                explosion->start_time = al_get_time();
+                explosion->active = true;
+                p->alive = false;  // remove projectile
+                break; // Optional: remove only one alien per projectile
+            }
+        }
+    }
+
+
 }
