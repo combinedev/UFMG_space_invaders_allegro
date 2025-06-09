@@ -13,12 +13,22 @@ int main(void) {
     if (!al_init()) return -1; /* core */
     al_install_keyboard(); /* input */
     al_init_image_addon(); /* PNG/JPG */
+    ALLEGRO_FONT *font = NULL;
+    al_init_font_addon();    // Always needed
+    al_init_ttf_addon();     // Required for TTF fonts
 
     /* 2. Open a window ----------------------------------------------------- */
     ALLEGRO_DISPLAY *display = al_create_display(WIN_W, WIN_H);
     if (!display) return -1;
 
     /* 3. Load and initialize assets -------------------------------------------------- */
+    font = al_load_ttf_font("assets/font.ttf", 24, 0);
+    if (!font) {
+        fprintf(stderr, "Could not load font\n");
+        return 1;
+    }
+    int score = 0;
+    char score_text[32];
 
     Explosion explosion;
     explosion.active = false;
@@ -40,7 +50,7 @@ int main(void) {
         return 1;
     }
 
-    float posx = 0, posy = 0;
+    float posx = 0, posy = 70;
     Alien matrix[5][10];
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 10; j++) {
@@ -51,6 +61,7 @@ int main(void) {
             posx +=45;
             if (i == 0){
                 matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_A1.png");
+                matrix[i][j].type = 'A';
                 if (!matrix[i][j].alien_bitmap[0]) {
                     fprintf(stderr, "Failed to load assets/space_A1.png, check the path\n");
                     return 1;
@@ -61,6 +72,7 @@ int main(void) {
                     return 1;
                 };
             }else if (i >= 1 && i <= 2) {
+                matrix[i][j].type = 'B';
                 matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_B1.png");
                 if (!matrix[i][j].alien_bitmap[0]) {
                     fprintf(stderr, "Failed to load assets/space_B1.png, check the path\n");
@@ -72,6 +84,7 @@ int main(void) {
                     return 1;
                 };
             }else if (i>2){
+                matrix[i][j].type = 'C';
                 matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_C1.png");
                 if (!matrix[i][j].alien_bitmap[0]) {
                     fprintf(stderr, "Failed to load assets/space_C1.png, check the path\n");
@@ -165,7 +178,7 @@ int main(void) {
                 redraw = true;
                 update_player(&A_pressed, &D_pressed, &p1);
                 if (p_proj.alive) {
-                    update_projectile(&p_proj, matrix, &explosion);
+                    update_projectile(&p_proj, matrix, &explosion, &score);
                 }
                 if (explosion.active && al_get_time() - explosion.start_time >= 1) {
                     explosion.active = false;
@@ -186,12 +199,13 @@ int main(void) {
         if (game_over) {
             running = false;
         }
+        sprintf(score_text, "SCORE: %d points", score);
 
         //Draw the game state--------------------------------------------------------- */
         if (redraw && al_is_event_queue_empty(q)) {
             redraw = false;
             al_clear_to_color(al_map_rgb(30, 30, 50)); /* midnight blue */
-
+            al_draw_text(font, al_map_rgb(255, 255, 255), 0, 10, 0, score_text);
             int bmp_w = al_get_bitmap_width(p1.ship_bitmap);
             int bmp_h = al_get_bitmap_height(p1.ship_bitmap);
             for (int i = 0; i < 5; i++) {

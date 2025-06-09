@@ -8,6 +8,8 @@
 #define WIN_H  600
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
+#include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
 #define ACCEL  0.5f      // acceleration per frame
 #define MAX_SPEED  6.0f // top speed
 #define FRICTION  0.3f  // how fast it slows down
@@ -31,6 +33,7 @@ typedef struct Alien {
     float y;
     bool alive;
     int frame;
+    char type;
 }Alien;
 
 typedef struct Projectile {
@@ -49,6 +52,6 @@ typedef struct Explosion {
 }Explosion;
 void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
-void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion);
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score);
 bool check_collision(Projectile *proj, Alien *alien);
 #endif //OBJECTS_H

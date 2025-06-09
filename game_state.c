@@ -167,7 +167,7 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1) {
         p1->vx = 0;
     }
 }
-void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion) {
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score) {
     p->vy = 0;
     p->vy -= ACCEL*8;
     if (p->vy < -MAX_SPEED) //truncation
@@ -182,6 +182,17 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion)
         for (int j = 0; j < 10; j++) {
             if (check_collision(p, &matrix[i][j])) {
                 matrix[i][j].alive = false;
+                switch (matrix[i][j].type) {
+                    case 'A':
+                        *score += 100;
+                        break;
+                    case 'B':
+                        *score += 50;
+                        break;
+                    case 'C':
+                        *score += 25;
+                        break;
+                }
                 explosion->x = matrix[i][j].x;
                 explosion->y = matrix[i][j].y;
                 explosion->explosion_bitmap = al_load_bitmap("assets/enemy_explosion.png"); // load once or reuse
