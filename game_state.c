@@ -167,7 +167,7 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1) {
         p1->vx = 0;
     }
 }
-void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score) {
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score, ALLEGRO_SAMPLE * explosion_sfx) {
     p->vy = 0;
     p->vy -= ACCEL*8;
     if (p->vy < -MAX_SPEED) //truncation
@@ -180,8 +180,9 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
     //hit alien
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 10; j++) {
-            if (check_collision(p, &matrix[i][j])) {
+            if (check_collision(p, &matrix[i][j])) { //alien hit -> explodes and dies
                 matrix[i][j].alive = false;
+                al_play_sample(explosion_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
                 switch (matrix[i][j].type) {
                     case 'A':
                         *score += 100;

@@ -17,4 +17,6 @@ target_link_libraries(trabalho_allegro
         allegro_font
         allegro_ttf
         allegro_primitives
+        allegro_audio
+        allegro_acodec
 )

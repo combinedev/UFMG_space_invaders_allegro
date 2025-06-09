@@ -16,6 +16,9 @@ int main(void) {
     ALLEGRO_FONT *font = NULL;
     al_init_font_addon();    // Always needed
     al_init_ttf_addon();     // Required for TTF fonts
+    al_install_audio();
+    al_init_acodec_addon();
+    al_reserve_samples(16);  // Reserve up to 16 simultaneous sounds
 
     /* 2. Open a window ----------------------------------------------------- */
     ALLEGRO_DISPLAY *display = al_create_display(WIN_W, WIN_H);
@@ -29,6 +32,22 @@ int main(void) {
     }
     int score = 0;
     char score_text[32];
+
+    ALLEGRO_SAMPLE *shoot_sfx = al_load_sample("assets/shoot.wav");
+    if (!shoot_sfx) {
+        fprintf(stderr, "Failed to load sound effect!\n");
+        return 1;
+    }
+    ALLEGRO_SAMPLE *explosion_sfx = al_load_sample("assets/explosion.wav");
+    if (!shoot_sfx) {
+        fprintf(stderr, "Failed to load sound effect!\n");
+        return 1;
+    }
+    ALLEGRO_SAMPLE *bg_music = al_load_sample("assets/glitch.mp3");
+    if (!bg_music) {
+        fprintf(stderr, "Failed to load background music.\n");
+        return 1;
+    }
 
     Explosion explosion;
     explosion.active = false;
@@ -114,6 +133,7 @@ int main(void) {
     al_register_event_source(q, al_get_display_event_source(display));
 
     // Start timers
+    al_play_sample(bg_music, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     al_start_timer(game_timer);
     al_start_timer(alien_timer);
     al_start_timer(alien_anim_timer);   /* ← start the animation timer */
@@ -143,6 +163,7 @@ int main(void) {
                         break;
                     case ALLEGRO_KEY_SPACE:
                         if (!p_proj.alive) {
+                            al_play_sample(shoot_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
                             p_proj.alive = true;
                             p_proj.y = p1.y;
                             p_proj.x = p1.x + al_get_bitmap_width(p1.ship_bitmap)/2;
@@ -178,7 +199,7 @@ int main(void) {
                 redraw = true;
                 update_player(&A_pressed, &D_pressed, &p1);
                 if (p_proj.alive) {
-                    update_projectile(&p_proj, matrix, &explosion, &score);
+                    update_projectile(&p_proj, matrix, &explosion, &score, explosion_sfx);
                 }
                 if (explosion.active && al_get_time() - explosion.start_time >= 1) {
                     explosion.active = false;
@@ -266,6 +287,7 @@ int main(void) {
 
     /* 5. Shutdown ---------------------------------------------------------- */
     al_destroy_bitmap(p1.ship_bitmap);
+    al_destroy_sample(shoot_sfx);
     al_destroy_display(display);
     al_destroy_event_queue(q);
     return 0;

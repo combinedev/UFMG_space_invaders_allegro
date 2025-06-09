@@ -10,6 +10,8 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #define ACCEL  0.5f      // acceleration per frame
 #define MAX_SPEED  6.0f // top speed
 #define FRICTION  0.3f  // how fast it slows down
@@ -52,6 +54,6 @@ typedef struct Explosion {
 }Explosion;
 void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
-void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score);
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);
 #endif //OBJECTS_H
