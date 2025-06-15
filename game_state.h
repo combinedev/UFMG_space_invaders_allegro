@@ -19,6 +19,10 @@
 #define TILT_SPEED  2.5f     // how fast tilt angular changes per frame
 #define alien_move_speed 45 // Pixels per move
 #define alien_move_delay 500 // Frames/tics between moves
+#define FPS 60
+#define ALIEN_TIC_RATE 1.5  // Move aliens every 1.5 seconds
+#define ANIM_OFFSET         0.3    // Time before move to switch sprite
+#define ANIM_DURATION       1    // How long the animation frame lasts
 
 enum State {
     MENU,
@@ -67,19 +71,27 @@ typedef struct Game {
     Player p1;
     Projectile p_proj;
     Alien matrix[5][10];
+    bool alien_animating;
+    double anim_start_time;
+    bool running, redraw;
+    bool A_pressed;
+    bool D_pressed;
+    bool game_over;
     ALLEGRO_SAMPLE *shoot_sfx;
     ALLEGRO_SAMPLE *explosion_sfx;
     ALLEGRO_SAMPLE *bg_music;
+    ALLEGRO_TIMER *game_timer;
+    ALLEGRO_TIMER *alien_timer;
+    ALLEGRO_TIMER *alien_anim_timer;
+    ALLEGRO_EVENT_QUEUE *q;
 
 }Game;
 
-int setup_game(Player *p1, Projectile *p_proj, Alien matrix[5][10], Explosion *explosion,
-    ALLEGRO_SAMPLE **shoot_sfx, ALLEGRO_SAMPLE **explosion_sfx, ALLEGRO_SAMPLE **bg_music,
-    ALLEGRO_FONT **font, int *score);
+void start_game_queue(Game *game, ALLEGRO_DISPLAY **display);
+int setup_game(Game *game);
 void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);
-void draw_game(ALLEGRO_FONT *font, Player *p1, char *score_text, Alien matrix[5][10],
-               Projectile *p_proj, Explosion *explosion);
+void draw_game(Game *game);
 #endif //OBJECTS_H
