@@ -267,7 +267,7 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
         }
     }
 }
-int setup_game(Game *game){
+int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     al_init_image_addon(); /* PNG/JPG */
     al_init_font_addon();    // Always needed
     al_init_ttf_addon();     // Required for TTF fonts
@@ -368,22 +368,23 @@ int setup_game(Game *game){
         posx = 0;
         posy += 48;
     }
+
+    /* 4. Prepare event queue ---------------------------------------------- */
+    game->game_timer = al_create_timer(1.0 / FPS); //redraw upon fps rate
+    game->alien_timer = al_create_timer(ALIEN_TIC_RATE);
+    game->alien_anim_timer = al_create_timer(ALIEN_TIC_RATE - ANIM_OFFSET);
+    game->q = al_create_event_queue();
+    al_register_event_source(game->q, al_get_keyboard_event_source());
+    al_register_event_source(game->q, al_get_display_event_source(*display));
+    al_register_event_source(game->q, al_get_timer_event_source(game->game_timer));
+    al_register_event_source(game->q, al_get_timer_event_source(game->alien_timer));
+    al_register_event_source(game->q, al_get_timer_event_source(game->alien_anim_timer));
+
     printf("Sucessfully loaded game assets.\n");
     return 0;
 }
 
-void start_game_queue(Game *game, ALLEGRO_DISPLAY **display) {
-    /* 4. Prepare event queue ---------------------------------------------- */
-    game->game_timer = al_create_timer(1.0 / FPS);
-    game->alien_timer = al_create_timer(ALIEN_TIC_RATE);
-    game->alien_anim_timer = al_create_timer(ALIEN_TIC_RATE - ANIM_OFFSET);
-    ALLEGRO_EVENT_QUEUE *q = al_create_event_queue();
-    al_register_event_source(q, al_get_keyboard_event_source());
-    al_register_event_source(q, al_get_display_event_source(*display));
-    al_register_event_source(q, al_get_timer_event_source(game->game_timer));
-    al_register_event_source(q, al_get_timer_event_source(game->alien_timer));
-    al_register_event_source(q, al_get_timer_event_source(game->alien_anim_timer));
-
+void start_game_queue(Game *game) {
     // Start timers
     al_play_sample(game->bg_music, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     al_start_timer(game->game_timer);
@@ -398,9 +399,9 @@ void start_game_queue(Game *game, ALLEGRO_DISPLAY **display) {
 
     while (game->running) {
         /* --- handle all waiting events first --- */
-        while (!al_is_event_queue_empty(q)) {
+        while (!al_is_event_queue_empty(game->q)) {
             ALLEGRO_EVENT ev;
-            al_get_next_event(q, &ev);
+            al_get_next_event(game->q, &ev);
             if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 game->running = false;
 
@@ -447,37 +448,59 @@ void start_game_queue(Game *game, ALLEGRO_DISPLAY **display) {
                     game->anim_start_time = al_get_time();
                 }
             }
+            //Update game draw function according to events -> redraw
             if (ev.timer.source == game->game_timer) {
-                game->redraw = true;
-                update_player(&game->A_pressed, &game->D_pressed, &game->p1);
-                if (game->p_proj.alive) {
-                    update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score, game->explosion_sfx);
+                if (ev.timer.source == game->game_timer) {
+                    update_player(&game->A_pressed, &game->D_pressed, &game->p1);
+                    if (game->p_proj.alive) {
+                        update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score, game->explosion_sfx);
+                    }
+                    if (game->explosion.active && al_get_time() - game->explosion.start_time >= 0.5) {
+                        game->explosion.active = false;
+                    }
+                    game->redraw = true;
                 }
-                if (game->explosion.active && al_get_time() - game->explosion.start_time >= 1) {
-                    game->explosion.active = false;
-                }
-            }
 
-        }
-        //Update
-        if (game->alien_animating && al_get_time() >= game->anim_start_time + ANIM_DURATION) {
-            for (int r = 0; r < 5; r++) {
-                for (int c = 0; c < 10; c++) {
-                    if (game->matrix[r][c].alive)
-                        game->matrix[r][c].frame = 0;
-                }
             }
-            game->alien_animating = false;
-        }
-        if (game->game_over) {
-            game->running = false;
-        }
-        sprintf(game->score_text, "SCORE: %d points", game->score);
+            //Update
+            if (game->alien_animating && al_get_time() >= game->anim_start_time + ANIM_DURATION) {
+                for (int r = 0; r < 5; r++) {
+                    for (int c = 0; c < 10; c++) {
+                        if (game->matrix[r][c].alive)
+                            game->matrix[r][c].frame = 0;
+                    }
+                }
+                game->alien_animating = false;
+            }
+            if (game->game_over) {
+                game->running = false;
+            }
+            sprintf(game->score_text, "SCORE: %d points", game->score);
 
-        //Draw the game state--------------------------------------------------------- */
-        if (game->redraw && al_is_event_queue_empty(q)) {
-            game->redraw = false;
-            draw_game(game);
+            //Draw the game state--------------------------------------------------------- */
+            if (game->redraw && al_is_event_queue_empty(game->q)) {
+                game->redraw = false;
+                draw_game(game);
+            }
         }
     }
+}
+
+void destroy_game(Game *game) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 10; j++) {
+            al_destroy_bitmap(game->matrix[i][j].alien_bitmap[0]);
+            al_destroy_bitmap(game->matrix[i][j].alien_bitmap[1]);
+        }
+    }
+    al_destroy_timer(game->game_timer);
+    al_destroy_timer(game->alien_timer);
+    al_destroy_timer(game->alien_anim_timer);
+    al_destroy_bitmap(game->p1.ship_bitmap);
+    al_destroy_bitmap(game->p_proj.projectile_bitmap);
+    al_destroy_bitmap(game->explosion.explosion_bitmap);
+    al_destroy_sample(game->shoot_sfx);
+    al_destroy_sample(game->explosion_sfx);
+    al_destroy_sample(game->bg_music);
+    al_destroy_event_queue(game->q);
 }

@@ -19,7 +19,7 @@
 #define TILT_SPEED  2.5f     // how fast tilt angular changes per frame
 #define alien_move_speed 45 // Pixels per move
 #define alien_move_delay 500 // Frames/tics between moves
-#define FPS 60
+#define FPS 50
 #define ALIEN_TIC_RATE 1.5  // Move aliens every 1.5 seconds
 #define ANIM_OFFSET         0.3    // Time before move to switch sprite
 #define ANIM_DURATION       1    // How long the animation frame lasts
@@ -87,11 +87,12 @@ typedef struct Game {
 
 }Game;
 
-void start_game_queue(Game *game, ALLEGRO_DISPLAY **display);
-int setup_game(Game *game);
+void start_game_queue(Game *game);
+int setup_game(Game *game, ALLEGRO_DISPLAY **display);
 void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);
 void draw_game(Game *game);
+void destroy_game(Game *game);
 #endif //OBJECTS_H
