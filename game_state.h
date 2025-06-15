@@ -1,11 +1,11 @@
 //
 // Created by hayde on 08/06/2025.
 //
-
 #ifndef OBJECTS_H
 #define OBJECTS_H
 #define WIN_W  800
 #define WIN_H  600
+#include <stdio.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
@@ -20,6 +20,11 @@
 #define alien_move_speed 45 // Pixels per move
 #define alien_move_delay 500 // Frames/tics between moves
 
+enum State {
+    MENU,
+    GAME,
+    GAMEOVER
+};
 
 typedef struct Player {
     ALLEGRO_BITMAP *ship_bitmap;
@@ -45,6 +50,7 @@ typedef struct Projectile {
     float vy;
     bool alive;
 }Projectile;
+
 typedef struct Explosion {
     ALLEGRO_BITMAP *explosion_bitmap;
     float x;
@@ -52,8 +58,28 @@ typedef struct Explosion {
     bool active;
     float start_time;
 }Explosion;
+
+typedef struct Game {
+    ALLEGRO_FONT *font;
+    int score;
+    char score_text[32];
+    Explosion explosion;
+    Player p1;
+    Projectile p_proj;
+    Alien matrix[5][10];
+    ALLEGRO_SAMPLE *shoot_sfx;
+    ALLEGRO_SAMPLE *explosion_sfx;
+    ALLEGRO_SAMPLE *bg_music;
+
+}Game;
+
+int setup_game(Player *p1, Projectile *p_proj, Alien matrix[5][10], Explosion *explosion,
+    ALLEGRO_SAMPLE **shoot_sfx, ALLEGRO_SAMPLE **explosion_sfx, ALLEGRO_SAMPLE **bg_music,
+    ALLEGRO_FONT **font, int *score);
 void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);
+void draw_game(ALLEGRO_FONT *font, Player *p1, char *score_text, Alien matrix[5][10],
+               Projectile *p_proj, Explosion *explosion);
 #endif //OBJECTS_H
