@@ -78,16 +78,20 @@ void draw_game(Game *game) {
         }
     }
     if (game->ufo.alive) {
-        al_draw_scaled_bitmap(game->ufo.ufo_bitmap,
-                              0,
-                              0,
-                              al_get_bitmap_width(game->ufo.ufo_bitmap),
-                              al_get_bitmap_height(game->ufo.ufo_bitmap),
-                              game->ufo.x,
-                              game->ufo.y,
-                              al_get_bitmap_width(game->ufo.ufo_bitmap),
-                              al_get_bitmap_height(game->ufo.ufo_bitmap),
-                              0);
+        al_draw_bitmap(game->ufo.ufo_bitmap,game->ufo.x,game->ufo.y,0);
+    }
+    //shields
+    // Draw shields
+    for (int i = 0; i < 4; i++) {
+        if (game->shields[i].alive) {
+            al_draw_scaled_bitmap(game->shields[i].bitmap[game->shields[i].frame], 0, 0,
+                                  al_get_bitmap_width(game->shields[i].bitmap[game->shields[i].frame]),
+                                  al_get_bitmap_height(game->shields[i].bitmap[game->shields[i].frame]),
+                                  game->shields[i].x,
+                                  game->shields[i].y,
+                                  al_get_bitmap_width(game->shields[i].bitmap[game->shields[i].frame]) * 2.5,
+                                  al_get_bitmap_height(game->shields[i].bitmap[game->shields[i].frame]) * 2.5, 0);
+        }
     }
     al_flip_display();
 }
@@ -111,7 +115,19 @@ bool check_collision(Projectile *proj, Alien *alien) {
             proj->y < alien->y + alien_h &&
             proj->y + proj_h > alien->y);
 }
+bool check_projectile_shield_collision(Projectile *proj, Shield *shield) {
+    if (!proj->alive || !shield->alive) return false;
 
+    float proj_w = al_get_bitmap_width(proj->projectile_bitmap) * 2.5f;
+    float proj_h = al_get_bitmap_height(proj->projectile_bitmap) * 2.5f;
+    float shield_w = al_get_bitmap_width(shield->bitmap[0]) * 2.5;
+    float shield_h = al_get_bitmap_height(shield->bitmap[0]) *2.5;
+
+    return (proj->x < shield->x + shield_w &&
+            proj->x + proj_w > shield->x &&
+            proj->y < shield->y + shield_h &&
+            proj->y + proj_h > shield->y);
+}
 void update_alien_projectiles(Game *game, Player *p1, bool *game_over) {
     for (int i = 0; i < MAX_ALIEN_PROJECTILES; i++) {
         if (game->a_proj[i].alive) {
@@ -120,9 +136,22 @@ void update_alien_projectiles(Game *game, Player *p1, bool *game_over) {
             if (game->a_proj[i].y > WIN_H) {
                 game->a_proj[i].alive = false;
             }
+            // Shield collision
+            for (int s = 0; s < 4; s++) {
+                if (game->shields[s].alive &&
+                    check_projectile_shield_collision(&game->a_proj[i], &game->shields[s])){
+                    game->a_proj[i].alive = false;
+                    game->shields[s].life--;
+                    game->shields[s].frame++;
+                    if (game->shields[s].life <= 0) {
+                        game->shields[s].alive = false;
+                    }
+                        break;
+                    }
+            }
             // Check collision with player (AABB)
-            float proj_w = al_get_bitmap_width(game->a_proj[i].projectile_bitmap) *2.5;
-            float proj_h = al_get_bitmap_height(game->a_proj[i].projectile_bitmap) *2.5;
+            float proj_w = al_get_bitmap_width(game->a_proj[i].projectile_bitmap) * 2.5;
+            float proj_h = al_get_bitmap_height(game->a_proj[i].projectile_bitmap) * 2.5;
 
             float player_w = al_get_bitmap_width(p1->ship_bitmap) * 1.5;
             float player_h = al_get_bitmap_height(p1->ship_bitmap) * 1.5;
@@ -372,11 +401,11 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
         float u_w = al_get_bitmap_width(ufo->ufo_bitmap);
         float u_h = al_get_bitmap_height(ufo->ufo_bitmap);
         if ( //AABB
-                p->x < ufo->x + u_w &&
-                p->x + p_w > ufo->x &&
-                p->y < ufo->y + u_h &&
-                p->y + p_h > ufo->y
-            ) {
+            p->x < ufo->x + u_w &&
+            p->x + p_w > ufo->x &&
+            p->y < ufo->y + u_h &&
+            p->y + p_h > ufo->y
+        ) {
             // Collision detected → Both projectiles die
             *score += 1000;
             p->alive = false;
@@ -389,10 +418,8 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
             explosion->active = true;
             // Play explosion sound
             al_play_sample(explosion_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-            }
+        }
     }
-
-
 }
 
 int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
@@ -470,6 +497,27 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
     game->ufo.vx = 3;
     game->ufo.x = 0 - al_get_bitmap_width(game->ufo.ufo_bitmap);
     game->ufo.y = 70;
+
+    //shield setup
+    // Load shield frames
+    float shield_spacing = WIN_W / 5.0f; // 4 shields + 5 gaps
+    for (int i = 0; i < 4; i++) {
+        for (int frame = 0; frame < 9; frame++) {
+            char path[64];
+            sprintf(path, "assets/shield_%d.png", frame);
+            game->shields[i].bitmap[frame] = al_load_bitmap(path);
+            if (!game->shields[i].bitmap[frame]) {
+                fprintf(stderr, "Failed to load shield frame %d\n", frame);
+                return 1;
+            }
+        }
+        game->shields[i].life = 8; // Full health
+        game->shields[i].frame = 0;
+        game->shields[i].alive = true;
+        game->shields[i].x = shield_spacing * (i + 1) -
+                             al_get_bitmap_width(game->shields[i].bitmap[0]) / 2;
+        game->shields[i].y = WIN_H - 150; // Above player
+    }
 
     //p_proj reset
     game->p_proj.alive = false;
@@ -693,7 +741,7 @@ void update_ufo(UFO *ufo) {
             ufo->x = 0 - al_get_bitmap_width(ufo->ufo_bitmap);
         }
     } else {
-        static float time_until_spawn = 0.0f;  // Not const!
+        static float time_until_spawn = 0.0f; // Not const!
         static float timer = 0.0f;
 
         // Initialize time_until_spawn on first run
@@ -711,6 +759,7 @@ void update_ufo(UFO *ufo) {
         }
     }
 }
+
 void alien_fire(Game *game) {
     int alive_columns[10];
     int alive_col_count = 0;

@@ -56,8 +56,16 @@ typedef struct UFO {
     bool alive;
     float vx;
 }UFO;
+typedef struct Shield {
+    ALLEGRO_BITMAP *bitmap[9]; // 9 frames (full + 8 damage states)
+    float x, y;
+    int life; // Starts at 8 (full), decreases with hits
+    int frame;
+    bool alive;
+} Shield;
 
 typedef struct Game {
+    Shield shields[4]; // 4 shields
     int alien_direction;
     ALLEGRO_FONT *font;
     int score;
@@ -99,4 +107,5 @@ void update_ufo(UFO *ufo);
 void alien_fire(Game *game);
 void update_alien_projectiles(Game *game, Player *p1, bool *game_over);
 void destroy_game(Game *game);
+bool check_projectile_shield_collision(Projectile *proj, Shield *shield);
 #endif //OBJECTS_H
