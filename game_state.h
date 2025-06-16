@@ -22,6 +22,7 @@ typedef struct Player {
     float vx;
     float y;
     float angle;     // rotation angle in degrees
+    int lives;
 }Player;
 
 typedef struct Alien {
@@ -40,6 +41,12 @@ typedef struct Projectile {
     float vy;
     bool alive;
 }Projectile;
+
+typedef struct UI {
+    ALLEGRO_BITMAP *lives[3]; //max: 3 lives
+    float x;
+    float y;
+}UI;
 
 typedef struct Explosion {
     ALLEGRO_BITMAP *explosion_bitmap;
@@ -71,6 +78,7 @@ typedef struct Game {
     int score;
     char score_text[32];
     UFO ufo;
+    UI ui;
     Explosion explosion;
     Player p1;
     Projectile p_proj;
@@ -88,6 +96,7 @@ typedef struct Game {
     ALLEGRO_SAMPLE *shoot_sfx;
     ALLEGRO_SAMPLE *explosion_sfx;
     ALLEGRO_SAMPLE *bg_music;
+    ALLEGRO_SAMPLE *hit_sfx;
     ALLEGRO_SAMPLE *alien_shoot_sfx;
     ALLEGRO_TIMER *game_timer;
     ALLEGRO_TIMER *alien_timer;

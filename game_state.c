@@ -93,6 +93,12 @@ void draw_game(Game *game) {
                                   al_get_bitmap_height(game->shields[i].bitmap[game->shields[i].frame]) * 2.5, 0);
         }
     }
+    //draw ui
+    float x_spacer = 0;
+    for (int i = 0; i < game->p1.lives; i++) {
+        al_draw_tinted_bitmap(game->ui.lives[i],al_map_rgb(100, 255, 100),game->ui.x + x_spacer,game->ui.y,0);
+        x_spacer += al_get_bitmap_width(game->ui.lives[i]) * 1.5;
+    }
     al_flip_display();
 }
 
@@ -162,8 +168,25 @@ void update_alien_projectiles(Game *game, Player *p1, bool *game_over) {
                 game->a_proj[i].y < p1->y + player_h &&
                 game->a_proj[i].y + proj_h > p1->y
             ) {
-                *game_over = true;
                 game->a_proj[i].alive = false;
+                p1->lives--;  // Decrement life count
+
+                // Spawn explosion at player position
+                game->explosion.x = p1->x;
+                game->explosion.y = p1->y;
+                game->explosion.start_time = al_get_time();
+                game->explosion.active = true;
+                al_play_sample(game->hit_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+
+                // Only game over when lives reach 0
+                if (p1->lives <= 0) {
+                    *game_over = true;
+                } else {
+                    // Reset player position after death
+                    p1->x = WIN_W / 2;
+                    p1->y = WIN_H - 60;
+                    p1->angle = 0;
+                }
             }
         }
     }
@@ -431,6 +454,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
     al_reserve_samples(16); // Reserve up to 16 simultaneous sounds
 
     game->running = false;
+    game->hit_sfx = al_load_sample("assets/hit.wav");
     game->shoot_sfx = al_load_sample("assets/shoot.wav");
     game->explosion_sfx = al_load_sample("assets/explosion.wav");
     game->bg_music = al_load_sample("assets/glitch.mp3");
@@ -450,6 +474,10 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
     if (!game->shoot_sfx) {
         fprintf(stderr, "Failed to load sound effect!\n");
         return 1;
+    }
+
+    if (!game->hit_sfx) {
+        fprintf(stderr, "Failed to load sound effect!\n");
     }
 
     if (!game->explosion_sfx) {
@@ -483,7 +511,15 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
         return 1;
     }
     game->p1.x = WIN_W / 2;
-    game->p1.y = WIN_H - 50;
+    game->p1.y = WIN_H - 60;
+    game->p1.lives = 3; //starting lifes
+
+    //UI setup
+    for (int i = 0; i < 3; i++) {
+        game->ui.lives[i] = al_load_bitmap("assets/player.png");
+    }
+    game->ui.y = WIN_H - 30;
+    game->ui.x = 20;
 
     game->explosion.explosion_bitmap = al_load_bitmap("assets/enemy_explosion.png");
     if (!game->explosion.explosion_bitmap) {
@@ -717,6 +753,9 @@ void destroy_game(Game *game) {
             al_destroy_bitmap(game->matrix[i][j].alien_bitmap[1]);
         }
     }
+    for (int i = 0; i < game->p1.lives; i++) {
+        al_destroy_bitmap(game->ui.lives[i]);
+    }
     al_destroy_timer(game->game_timer);
     al_destroy_timer(game->alien_timer);
     al_destroy_timer(game->alien_anim_timer);
@@ -727,8 +766,10 @@ void destroy_game(Game *game) {
     al_destroy_sample(game->shoot_sfx);
     al_destroy_sample(game->explosion_sfx);
     al_destroy_sample(game->bg_music);
+    al_destroy_sample(game->hit_sfx);
     al_destroy_sample(game->alien_shoot_sfx);
     al_destroy_bitmap(game->alien_projectile_bitmap);
+    al_destroy_bitmap(game->ufo.ufo_bitmap);
     al_destroy_event_queue(game->q);
 }
 
