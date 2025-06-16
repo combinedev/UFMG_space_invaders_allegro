@@ -8,7 +8,13 @@ set(CMAKE_CXX_STANDARD 26)
 
 add_executable(trabalho_allegro main.c
         game_state.h
-        game_state.c)
+        game_state.c
+        menu_state.h
+        stdafx.h
+        menu_state.c
+        gameover_state.c
+        gameover_state.h
+)
 
 # Link Allegro libraries — add/remove components as needed
 target_link_libraries(trabalho_allegro

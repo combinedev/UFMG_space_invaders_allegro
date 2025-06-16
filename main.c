@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include "game_state.h"
+#include "menu_state.h"
+#include "gameover_state.h"
 
 int main(void) {
     /* 1. Boot the engine --------------------------------------------------- */
@@ -10,16 +12,46 @@ int main(void) {
     /* 2. Open a window ----------------------------------------------------- */
     ALLEGRO_DISPLAY *display = al_create_display(WIN_W, WIN_H);
     if (!display) return -1;
-
-    /* 3. Load and initialize states -------------------------------------------------- */
     Game game;
-    if (setup_game(&game, &display) == 1){//found an error;
+
+    Menu menu;
+    if (setup_menu(&menu, &display) == 1) {
         return 1;
     }
-    start_game_queue(&game);
+    GameOver gameover;
+
+    /* 3. Load and initialize states -------------------------------------------------- */
+    //Simple state machine thing
+    State current_state = MENU;
+    while (true) {
+        switch (current_state) {
+            case MENU:
+                start_menu_queue(&menu, &current_state);
+                destroy_menu(&menu);
+                break;
+
+            case GAME:
+                if (setup_game(&game, &display) == 1){//found an error;
+                    return 1;
+                }
+                start_game_queue(&game, &current_state);
+                destroy_game(&game);
+                break;
+
+            case GAMEOVER:
+                if (setup_gameover(&gameover, &display, game.score, &game.won) == 1) {
+                    return 1;
+                };
+                start_gameover_queue(&gameover, &current_state);
+                destroy_gameover(&gameover);
+                break;
+
+            case EXIT:
+                al_destroy_display(display);
+                return 0;
+        }
+    }
 
     /* 5. Shutdown ---------------------------------------------------------- */
-    al_destroy_display(display);
-    destroy_game(&game);
     return 0;
 }

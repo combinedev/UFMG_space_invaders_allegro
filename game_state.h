@@ -1,17 +1,9 @@
 //
 // Created by hayde on 08/06/2025.
 //
-#ifndef OBJECTS_H
-#define OBJECTS_H
-#define WIN_W  800
-#define WIN_H  600
-#include <stdio.h>
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_ttf.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
+#ifndef GAME_STATE_H
+#define GAME_STATE_H
+#include "stdafx.h"
 #define ACCEL  0.5f      // acceleration per frame
 #define MAX_SPEED  6.0f // top speed
 #define FRICTION  0.3f  // how fast it slows down
@@ -19,16 +11,9 @@
 #define TILT_SPEED  2.5f     // how fast tilt angular changes per frame
 #define alien_move_speed 45 // Pixels per move
 #define alien_move_delay 500 // Frames/tics between moves
-#define FPS 50
 #define ALIEN_TIC_RATE 1.5  // Move aliens every 1.5 seconds
 #define ANIM_OFFSET         0.3    // Time before move to switch sprite
 #define ANIM_DURATION       1    // How long the animation frame lasts
-
-enum State {
-    MENU,
-    GAME,
-    GAMEOVER
-};
 
 typedef struct Player {
     ALLEGRO_BITMAP *ship_bitmap;
@@ -64,6 +49,7 @@ typedef struct Explosion {
 }Explosion;
 
 typedef struct Game {
+    int alien_direction;
     ALLEGRO_FONT *font;
     int score;
     char score_text[32];
@@ -74,6 +60,7 @@ typedef struct Game {
     bool alien_animating;
     double anim_start_time;
     bool running, redraw;
+    bool won;
     bool A_pressed;
     bool D_pressed;
     bool game_over;
@@ -87,9 +74,9 @@ typedef struct Game {
 
 }Game;
 
-void start_game_queue(Game *game);
+void start_game_queue(Game *game, State *current_state);
 int setup_game(Game *game, ALLEGRO_DISPLAY **display);
-void update_aliens(Alien matrix[5][10], bool *game_over ,Player *p1);
+void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);

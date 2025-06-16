@@ -6,7 +6,8 @@
 
 void draw_game(Game *game) {
     al_clear_to_color(al_map_rgb(30, 30, 50)); /* midnight blue */
-    al_draw_text(game->font, al_map_rgb(255, 255, 255), 0, 10, 0, game->score_text);
+    int title_w = al_get_text_width(game->font, game->score_text);
+    al_draw_text(game->font, al_map_rgb(255, 255, 255), (WIN_W - title_w)/2, 10, 0, game->score_text);
     int bmp_w = al_get_bitmap_width(game->p1.ship_bitmap);
     int bmp_h = al_get_bitmap_height(game->p1.ship_bitmap);
     for (int i = 0; i < 5; i++) {
@@ -85,8 +86,7 @@ bool check_collision(Projectile *proj, Alien *alien) {
 }
 
 
-void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
-    static int direction = 1; // 1 = right, -1 = left
+void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction){
     const int COLS = 10;
     const int ROWS = 5;
 
@@ -94,7 +94,7 @@ void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
     int rightmost_x = INT_MIN;
     bool found = false;
 
-    if (direction == -1) {
+    if (*direction == -1) {
         // Look for the first alive alien from the left
         for (int c = 0; c < COLS && !found; ++c) {
             for (int r = 0; r < ROWS; ++r) {
@@ -121,14 +121,14 @@ void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
 
     // Border collision detection
     bool hit_border = false;
-    if (direction == 1 && rightmost_x + alien_move_speed > WIN_W) {
+    if (*direction == 1 && rightmost_x + alien_move_speed > WIN_W) {
         hit_border = true;
-    } else if (direction == -1 && leftmost_x - alien_move_speed < 0) {
+    } else if (*direction == -1 && leftmost_x - alien_move_speed < 0) {
         hit_border = true;
     }
 
     if (hit_border) {
-        direction = -direction;
+        *direction = -*direction;
         for (int r = 0; r < ROWS; ++r) {
             for (int c = 0; c < COLS; ++c) {
                 Alien *a = &matrix[r][c];
@@ -141,7 +141,7 @@ void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
             for (int c = 0; c < COLS; ++c) {
                 Alien *a = &matrix[r][c];
                 if (!a->alive) continue;
-                a->x += direction * alien_move_speed;
+                a->x += *direction * alien_move_speed;
                 // 1. Check ground collision
                 if (matrix[r][c].y + al_get_bitmap_height(matrix[r][c].alien_bitmap[matrix[r][c].frame]) * 1.5 >=
                     WIN_H) {
@@ -169,6 +169,20 @@ void update_aliens(Alien matrix[5][10], bool *game_over, Player *p1) {
                 }
             }
         }
+    }
+    bool all_dead = true;
+    for (int r = 0; r < 5; r++) {
+        for (int c = 0; c < 10; c++) {
+            if (matrix[r][c].alive) {
+                all_dead = false;
+                break;
+            }
+        }
+        if (!all_dead) break;
+    }
+    if (all_dead) {
+        *won = true;
+        *game_over = true;
     }
 }
 
@@ -275,6 +289,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     al_init_acodec_addon();
     al_reserve_samples(16);  // Reserve up to 16 simultaneous sounds
 
+    game->running = false;
     game->shoot_sfx = al_load_sample("assets/shoot.wav");
     game->explosion_sfx = al_load_sample("assets/explosion.wav");
     game->bg_music = al_load_sample("assets/glitch.mp3");
@@ -304,6 +319,8 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     game->explosion.active = false;
     game->explosion.start_time = 0.0;
     game->score = 0;
+    game->won = false;
+    game->alien_direction = 1;
 
     game->p1.ship_bitmap = al_load_bitmap("assets/player.png");
     if (!game->p1.ship_bitmap) {
@@ -311,7 +328,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
         return 1;
     }
     game->p1.x = WIN_W / 2;
-    game->p1.y = WIN_H -50;
+    game->p1.y = WIN_H - 50;
 
     game->p_proj.projectile_bitmap = al_load_bitmap("assets/player_projectile.png");
     if (!game->p_proj.projectile_bitmap) {
@@ -384,7 +401,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     return 0;
 }
 
-void start_game_queue(Game *game) {
+void start_game_queue(Game *game, State *current_state) {
     // Start timers
     al_play_sample(game->bg_music, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     al_start_timer(game->game_timer);
@@ -392,7 +409,8 @@ void start_game_queue(Game *game) {
     al_start_timer(game->alien_anim_timer);   /* ← start the animation timer */
     game->alien_animating = false;
     game->anim_start_time = 0;
-    game->running = true, game->redraw;
+    game->running = true;
+    game->redraw = false;
     game->A_pressed = false;
     game->D_pressed = false;
     game->game_over = false;
@@ -404,6 +422,7 @@ void start_game_queue(Game *game) {
             al_get_next_event(game->q, &ev);
             if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 game->running = false;
+                *current_state = EXIT;
 
             if (ev.type == ALLEGRO_EVENT_KEY_DOWN) {
                 switch (ev.keyboard.keycode) {
@@ -413,6 +432,7 @@ void start_game_queue(Game *game) {
                         break;
                         //close window
                     case ALLEGRO_KEY_ESCAPE: game->running = false;
+                        *current_state = EXIT;
                         break;
                     case ALLEGRO_KEY_SPACE:
                         if (!game->p_proj.alive) {
@@ -434,7 +454,7 @@ void start_game_queue(Game *game) {
             }
             if (ev.type == ALLEGRO_EVENT_TIMER) {
                 if (ev.timer.source == game->alien_timer) {
-                    update_aliens(game->matrix, &game->game_over, &game->p1);  // Only runs every 0.5 seconds
+                    update_aliens(game->matrix, &game->game_over, &game->won, &game->p1, &game->alien_direction);  // Only runs every 0.5 seconds
                 }
                 else if (ev.timer.source == game->alien_anim_timer) {
                     // Switch all alive aliens to animation frame
@@ -473,6 +493,7 @@ void start_game_queue(Game *game) {
                 game->alien_animating = false;
             }
             if (game->game_over) {
+                *current_state = GAMEOVER;
                 game->running = false;
             }
             sprintf(game->score_text, "SCORE: %d points", game->score);
