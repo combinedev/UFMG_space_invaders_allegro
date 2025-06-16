@@ -7,7 +7,7 @@
 void draw_game(Game *game) {
     al_clear_to_color(al_map_rgb(30, 30, 50)); /* midnight blue */
     int title_w = al_get_text_width(game->font, game->score_text);
-    al_draw_text(game->font, al_map_rgb(255, 255, 255), (WIN_W - title_w)/2, 10, 0, game->score_text);
+    al_draw_text(game->font, al_map_rgb(255, 255, 255), (WIN_W - title_w) / 2, 10, 0, game->score_text);
     int bmp_w = al_get_bitmap_width(game->p1.ship_bitmap);
     int bmp_h = al_get_bitmap_height(game->p1.ship_bitmap);
     for (int i = 0; i < 5; i++) {
@@ -61,7 +61,22 @@ void draw_game(Game *game) {
                               al_get_bitmap_height(game->p_proj.projectile_bitmap) * 3,
                               0);
     }
-
+    for (int i = 0; i < MAX_ALIEN_PROJECTILES; i++) {
+        if (game->a_proj[i].alive) {
+            al_draw_tinted_scaled_bitmap(
+                game->a_proj[i].projectile_bitmap,
+                al_map_rgb(100, 255, 100), // ← Light green tint
+                0, 0,
+                al_get_bitmap_width(game->a_proj[i].projectile_bitmap),
+                al_get_bitmap_height(game->a_proj[i].projectile_bitmap),
+                game->a_proj[i].x,
+                game->a_proj[i].y,
+                al_get_bitmap_width(game->a_proj[i].projectile_bitmap) * 2.5,
+                al_get_bitmap_height(game->a_proj[i].projectile_bitmap) * 2.5,
+                0
+            );
+        }
+    }
     al_flip_display();
 }
 
@@ -85,8 +100,35 @@ bool check_collision(Projectile *proj, Alien *alien) {
             proj->y + proj_h > alien->y);
 }
 
+void update_alien_projectiles(Game *game, Player *p1, bool *game_over) {
+    for (int i = 0; i < MAX_ALIEN_PROJECTILES; i++) {
+        if (game->a_proj[i].alive) {
+            game->a_proj[i].y += game->a_proj[i].vy;
+            // Check for bottom of screen
+            if (game->a_proj[i].y > WIN_H) {
+                game->a_proj[i].alive = false;
+            }
+            // Check collision with player (AABB)
+            float proj_w = al_get_bitmap_width(game->a_proj[i].projectile_bitmap) *2.5;
+            float proj_h = al_get_bitmap_height(game->a_proj[i].projectile_bitmap) *2.5;
 
-void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction){
+            float player_w = al_get_bitmap_width(p1->ship_bitmap) * 1.5;
+            float player_h = al_get_bitmap_height(p1->ship_bitmap) * 1.5;
+
+            if (
+                game->a_proj[i].x < p1->x + player_w &&
+                game->a_proj[i].x + proj_w > p1->x &&
+                game->a_proj[i].y < p1->y + player_h &&
+                game->a_proj[i].y + proj_h > p1->y
+            ) {
+                *game_over = true;
+                game->a_proj[i].alive = false;
+            }
+        }
+    }
+}
+
+void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction) {
     const int COLS = 10;
     const int ROWS = 5;
 
@@ -272,7 +314,6 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
                 }
                 explosion->x = matrix[i][j].x;
                 explosion->y = matrix[i][j].y;
-                explosion->explosion_bitmap = al_load_bitmap("assets/enemy_explosion.png"); // load once or reuse
                 explosion->start_time = al_get_time();
                 explosion->active = true;
                 p->alive = false; // remove projectile
@@ -281,13 +322,14 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
         }
     }
 }
-int setup_game(Game *game, ALLEGRO_DISPLAY **display){
+
+int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
     al_init_image_addon(); /* PNG/JPG */
-    al_init_font_addon();    // Always needed
-    al_init_ttf_addon();     // Required for TTF fonts
+    al_init_font_addon(); // Always needed
+    al_init_ttf_addon(); // Required for TTF fonts
     al_install_audio();
     al_init_acodec_addon();
-    al_reserve_samples(16);  // Reserve up to 16 simultaneous sounds
+    al_reserve_samples(16); // Reserve up to 16 simultaneous sounds
 
     game->running = false;
     game->shoot_sfx = al_load_sample("assets/shoot.wav");
@@ -295,6 +337,11 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     game->bg_music = al_load_sample("assets/glitch.mp3");
     game->font = al_load_ttf_font("assets/font.ttf", 24, 0);
 
+    game->alien_shoot_sfx = al_load_sample("assets/alien_shoot.wav");
+    if (!game->alien_shoot_sfx) {
+        fprintf(stderr, "Failed to load alien_shoot.wav\n");
+        return 1;
+    }
 
     if (!game->font) {
         fprintf(stderr, "Could not load font\n");
@@ -322,6 +369,15 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     game->won = false;
     game->alien_direction = 1;
 
+    game->alien_projectile_bitmap = al_load_bitmap("assets/enemy_projectile.png");
+    if (!game->alien_projectile_bitmap) {
+        fprintf(stderr, "Failed to load assets/alien_projectile.png\n");
+        return 1;
+    }
+    for (int i = 0; i < MAX_ALIEN_PROJECTILES; i++) {
+        game->a_proj[i].alive = false;
+    }
+
     game->p1.ship_bitmap = al_load_bitmap("assets/player.png");
     if (!game->p1.ship_bitmap) {
         fprintf(stderr, "Failed to load assets/player.png, check the path\n");
@@ -329,6 +385,12 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     }
     game->p1.x = WIN_W / 2;
     game->p1.y = WIN_H - 50;
+
+    game->explosion.explosion_bitmap = al_load_bitmap("assets/enemy_explosion.png");
+    if (!game->explosion.explosion_bitmap) {
+        fprintf(stderr, "Failed to load explosion.\n");
+        return 1;
+    }
 
     game->p_proj.projectile_bitmap = al_load_bitmap("assets/player_projectile.png");
     if (!game->p_proj.projectile_bitmap) {
@@ -343,8 +405,8 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
             game->matrix[i][j].y = posy;
             game->matrix[i][j].alive = true;
             game->matrix[i][j].frame = 0;
-            posx +=45;
-            if (i == 0){
+            posx += 45;
+            if (i == 0) {
                 game->matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_A1.png");
                 game->matrix[i][j].type = 'A';
                 if (!game->matrix[i][j].alien_bitmap[0]) {
@@ -356,7 +418,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
                     fprintf(stderr, "Failed to load assets/space_A2.png, check the path\n");
                     return 1;
                 };
-            }else if (i >= 1 && i <= 2) {
+            } else if (i >= 1 && i <= 2) {
                 game->matrix[i][j].type = 'B';
                 game->matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_B1.png");
                 if (!game->matrix[i][j].alien_bitmap[0]) {
@@ -368,7 +430,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
                     fprintf(stderr, "Failed to load assets/space_B2.png, check the path\n");
                     return 1;
                 };
-            }else if (i>2){
+            } else if (i > 2) {
                 game->matrix[i][j].type = 'C';
                 game->matrix[i][j].alien_bitmap[0] = al_load_bitmap("assets/space_C1.png");
                 if (!game->matrix[i][j].alien_bitmap[0]) {
@@ -390,12 +452,14 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display){
     game->game_timer = al_create_timer(1.0 / FPS); //redraw upon fps rate
     game->alien_timer = al_create_timer(ALIEN_TIC_RATE);
     game->alien_anim_timer = al_create_timer(ALIEN_TIC_RATE - ANIM_OFFSET);
+    game->alien_proj_timer = al_create_timer(1.5); // ← Missing!
     game->q = al_create_event_queue();
     al_register_event_source(game->q, al_get_keyboard_event_source());
     al_register_event_source(game->q, al_get_display_event_source(*display));
     al_register_event_source(game->q, al_get_timer_event_source(game->game_timer));
     al_register_event_source(game->q, al_get_timer_event_source(game->alien_timer));
     al_register_event_source(game->q, al_get_timer_event_source(game->alien_anim_timer));
+    al_register_event_source(game->q, al_get_timer_event_source(game->alien_proj_timer));
 
     printf("Sucessfully loaded game assets.\n");
     return 0;
@@ -406,7 +470,8 @@ void start_game_queue(Game *game, State *current_state) {
     al_play_sample(game->bg_music, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     al_start_timer(game->game_timer);
     al_start_timer(game->alien_timer);
-    al_start_timer(game->alien_anim_timer);   /* ← start the animation timer */
+    al_start_timer(game->alien_anim_timer); /* ← start the animation timer */
+    al_start_timer(game->alien_proj_timer);
     game->alien_animating = false;
     game->anim_start_time = 0;
     game->running = true;
@@ -422,7 +487,7 @@ void start_game_queue(Game *game, State *current_state) {
             al_get_next_event(game->q, &ev);
             if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 game->running = false;
-                *current_state = EXIT;
+            *current_state = EXIT;
 
             if (ev.type == ALLEGRO_EVENT_KEY_DOWN) {
                 switch (ev.keyboard.keycode) {
@@ -430,7 +495,7 @@ void start_game_queue(Game *game, State *current_state) {
                         break;
                     case ALLEGRO_KEY_D: game->D_pressed = true;
                         break;
-                        //close window
+                    //close window
                     case ALLEGRO_KEY_ESCAPE: game->running = false;
                         *current_state = EXIT;
                         break;
@@ -439,7 +504,7 @@ void start_game_queue(Game *game, State *current_state) {
                             al_play_sample(game->shoot_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
                             game->p_proj.alive = true;
                             game->p_proj.y = game->p1.y;
-                            game->p_proj.x = game->p1.x + al_get_bitmap_width(game->p1.ship_bitmap)/2;
+                            game->p_proj.x = game->p1.x + al_get_bitmap_width(game->p1.ship_bitmap) / 2;
                             break;
                         }
                 }
@@ -454,9 +519,9 @@ void start_game_queue(Game *game, State *current_state) {
             }
             if (ev.type == ALLEGRO_EVENT_TIMER) {
                 if (ev.timer.source == game->alien_timer) {
-                    update_aliens(game->matrix, &game->game_over, &game->won, &game->p1, &game->alien_direction);  // Only runs every 0.5 seconds
-                }
-                else if (ev.timer.source == game->alien_anim_timer) {
+                    update_aliens(game->matrix, &game->game_over, &game->won, &game->p1, &game->alien_direction);
+                    // Only runs every 0.5 seconds
+                } else if (ev.timer.source == game->alien_anim_timer) {
                     // Switch all alive aliens to animation frame
                     for (int r = 0; r < 5; r++) {
                         for (int c = 0; c < 10; c++) {
@@ -467,21 +532,26 @@ void start_game_queue(Game *game, State *current_state) {
                     game->alien_animating = true;
                     game->anim_start_time = al_get_time();
                 }
-            }
-            //Update game draw function according to events -> redraw
-            if (ev.timer.source == game->game_timer) {
-                if (ev.timer.source == game->game_timer) {
-                    update_player(&game->A_pressed, &game->D_pressed, &game->p1);
-                    if (game->p_proj.alive) {
-                        update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score, game->explosion_sfx);
-                    }
-                    if (game->explosion.active && al_get_time() - game->explosion.start_time >= 0.5) {
-                        game->explosion.active = false;
-                    }
-                    game->redraw = true;
+                if (ev.timer.source == game->alien_proj_timer) {
+                    alien_fire(game);
                 }
-
+                //Update game draw function according to events -> redraw
+                if (ev.timer.source == game->game_timer) {
+                    if (ev.timer.source == game->game_timer) {
+                        update_player(&game->A_pressed, &game->D_pressed, &game->p1);
+                        if (game->p_proj.alive) {
+                            update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score,
+                                              game->explosion_sfx);
+                        }
+                        if (game->explosion.active && al_get_time() - game->explosion.start_time >= 0.5) {
+                            game->explosion.active = false;
+                        }
+                        update_alien_projectiles(game, &game->p1, &game->game_over);
+                        game->redraw = true;
+                    }
+                }
             }
+
             //Update
             if (game->alien_animating && al_get_time() >= game->anim_start_time + ANIM_DURATION) {
                 for (int r = 0; r < 5; r++) {
@@ -517,11 +587,84 @@ void destroy_game(Game *game) {
     al_destroy_timer(game->game_timer);
     al_destroy_timer(game->alien_timer);
     al_destroy_timer(game->alien_anim_timer);
+    al_destroy_timer(game->alien_proj_timer);
     al_destroy_bitmap(game->p1.ship_bitmap);
     al_destroy_bitmap(game->p_proj.projectile_bitmap);
     al_destroy_bitmap(game->explosion.explosion_bitmap);
     al_destroy_sample(game->shoot_sfx);
     al_destroy_sample(game->explosion_sfx);
     al_destroy_sample(game->bg_music);
+    al_destroy_sample(game->alien_shoot_sfx);
+    al_destroy_bitmap(game->alien_projectile_bitmap);
     al_destroy_event_queue(game->q);
+}
+
+//Additional
+void alien_fire(Game *game) {
+    int alive_columns[10];
+    int alive_col_count = 0;
+
+    // Find columns with at least one alive alien, reverse row counting, from bottom to top
+    for (int col = 0; col < 10; col++) {
+        for (int row = 4; row >= 0; row--) {
+            if (game->matrix[row][col].alive) {
+                alive_columns[alive_col_count] = col;
+                alive_col_count++;
+                break;
+            }
+        }
+    }
+
+    if (alive_col_count == 0) return; //no alive aliens, abort
+
+    int max_shots = (alive_col_count < 3) ? alive_col_count : 3;
+    int shots_this_tick = (rand() % max_shots) + 1;
+    /*If alive_col_count is less than 3, then max_shots = alive_col_count.
+    Otherwise, max_shots = 3.*/
+
+    int selected[3]; // Max 3 alive columns selections
+    int selected_count = 0;
+
+    while (selected_count < shots_this_tick) {
+        int r = alive_columns[rand() % alive_col_count]; //grabs a random index up to 0 and  alive_col_count -1
+        // Check if already selected
+        bool already = false;
+        for (int i = 0; i < selected_count; i++) {
+            if (selected[i] == r) {
+                already = true;
+                break;
+            }
+        }
+        if (!already) {
+            selected[selected_count] = r;
+            selected_count++;
+        }
+    }
+
+    // Fire from selected columns
+    for (int s = 0; s < selected_count; s++) {
+        int col = selected[s];
+        for (int row = 4; row >= 0; row--) {
+            if (game->matrix[row][col].alive) {
+                //only the last row alive alien shoots
+                // Find a free projectile slot and register the new projectile
+                for (int p = 0; p < MAX_ALIEN_PROJECTILES; p++) {
+                    if (!game->a_proj[p].alive) {
+                        //this centers up the a_proj to the matrix alien's center
+                        game->a_proj[p].projectile_bitmap = game->alien_projectile_bitmap;
+                        game->a_proj[p].x = game->matrix[row][col].x +
+                                            al_get_bitmap_width(game->matrix[row][col].alien_bitmap[0]) * 0.75;
+                        game->a_proj[p].y = game->matrix[row][col].y +
+                                            al_get_bitmap_height(game->matrix[row][col].alien_bitmap[0]) * 1.5;
+                        game->a_proj[p].vy = 4.0;
+                        game->a_proj[p].alive = true;
+                        // Play alien shoot sound
+                        al_play_sample(game->alien_shoot_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
 }

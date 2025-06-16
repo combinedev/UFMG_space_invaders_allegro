@@ -6,6 +6,7 @@
 #include "gameover_state.h"
 
 int main(void) {
+    srand(time(NULL));
     /* 1. Boot the engine --------------------------------------------------- */
     if (!al_init()) return -1; /* core */
     al_install_keyboard(); /* input */

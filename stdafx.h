@@ -9,6 +9,7 @@
 #define WIN_H  600
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>

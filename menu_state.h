@@ -5,6 +5,7 @@
 #ifndef MENU_STATE_H
 #define MENU_STATE_H
 #include "stdafx.h"
+
 typedef struct Menu {
     ALLEGRO_FONT *font;
     char title[40];
@@ -18,6 +19,7 @@ typedef struct Menu {
     bool redraw;
     int selected;
 }Menu;
+
 int setup_menu(Menu *menu, ALLEGRO_DISPLAY **display);
 void start_menu_queue(Menu *menu, State *current_state);
 void process_entry(int *selected, bool *running, State **current_state, ALLEGRO_SAMPLE_ID *bg_music_id);

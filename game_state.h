@@ -14,6 +14,7 @@
 #define ALIEN_TIC_RATE 1.5  // Move aliens every 1.5 seconds
 #define ANIM_OFFSET         0.3    // Time before move to switch sprite
 #define ANIM_DURATION       1    // How long the animation frame lasts
+#define MAX_ALIEN_PROJECTILES 20  // Supports many bullets on screen
 
 typedef struct Player {
     ALLEGRO_BITMAP *ship_bitmap;
@@ -56,6 +57,9 @@ typedef struct Game {
     Explosion explosion;
     Player p1;
     Projectile p_proj;
+    Projectile a_proj[MAX_ALIEN_PROJECTILES]; // Alien projectiles array
+    ALLEGRO_BITMAP *alien_projectile_bitmap; // single shared bitmap
+    ALLEGRO_TIMER *alien_proj_timer;          // Timer for alien shooting
     Alien matrix[5][10];
     bool alien_animating;
     double anim_start_time;
@@ -67,11 +71,11 @@ typedef struct Game {
     ALLEGRO_SAMPLE *shoot_sfx;
     ALLEGRO_SAMPLE *explosion_sfx;
     ALLEGRO_SAMPLE *bg_music;
+    ALLEGRO_SAMPLE *alien_shoot_sfx;
     ALLEGRO_TIMER *game_timer;
     ALLEGRO_TIMER *alien_timer;
     ALLEGRO_TIMER *alien_anim_timer;
     ALLEGRO_EVENT_QUEUE *q;
-
 }Game;
 
 void start_game_queue(Game *game, State *current_state);
@@ -81,5 +85,7 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
 bool check_collision(Projectile *proj, Alien *alien);
 void draw_game(Game *game);
+void alien_fire(Game *game);
+void update_alien_projectiles(Game *game, Player *p1, bool *game_over);
 void destroy_game(Game *game);
 #endif //OBJECTS_H
