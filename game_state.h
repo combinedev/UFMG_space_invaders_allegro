@@ -82,7 +82,8 @@ void start_game_queue(Game *game, State *current_state);
 int setup_game(Game *game, ALLEGRO_DISPLAY **display);
 void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
-void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,  ALLEGRO_SAMPLE * explosion_sfx);
+void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,
+                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES]);
 bool check_collision(Projectile *proj, Alien *alien);
 void draw_game(Game *game);
 void alien_fire(Game *game);

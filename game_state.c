@@ -284,7 +284,7 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1) {
 }
 
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,
-                       ALLEGRO_SAMPLE *explosion_sfx) {
+                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES]) {
     p->vy = 0;
     p->vy -= ACCEL * 8;
     if (p->vy < -MAX_SPEED) //truncation
@@ -321,6 +321,29 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
             }
         }
     }
+    //hit enemy projectile
+    for (int i = 0; i < MAX_ALIEN_PROJECTILES; i++) {
+        if (a_proj[i].alive) {
+            float p_w = al_get_bitmap_width(p->projectile_bitmap) * 2.0; // Assuming player scale
+            float p_h = al_get_bitmap_height(p->projectile_bitmap) * 2.0;
+
+            float a_w = al_get_bitmap_width(a_proj[i].projectile_bitmap) * 2.5;
+            float a_h = al_get_bitmap_height(a_proj[i].projectile_bitmap) * 2.5;
+
+            if (
+                p->x < a_proj[i].x + a_w &&
+                p->x + p_w > a_proj[i].x &&
+                p->y < a_proj[i].y + a_h &&
+                p->y + p_h > a_proj[i].y
+            ) {
+                // Collision detected → Both projectiles die
+                p->alive = false;
+                a_proj[i].alive = false;
+                break; // No need to check further after hit
+            }
+        }
+    }
+
 }
 
 int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
@@ -392,6 +415,11 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
         return 1;
     }
 
+    //p_proj reset
+    game->p_proj.alive = false;
+    game->p_proj.vy = 0;
+    game->p_proj.y = game->p1.y;
+    game->p_proj.x = game->p1.x + al_get_bitmap_width(game->p1.ship_bitmap) / 2;
     game->p_proj.projectile_bitmap = al_load_bitmap("assets/player_projectile.png");
     if (!game->p_proj.projectile_bitmap) {
         fprintf(stderr, "Failed to load assets/player_projectile.png, check the path\n");
@@ -541,7 +569,7 @@ void start_game_queue(Game *game, State *current_state) {
                         update_player(&game->A_pressed, &game->D_pressed, &game->p1);
                         if (game->p_proj.alive) {
                             update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score,
-                                              game->explosion_sfx);
+                                              game->explosion_sfx, game->a_proj);
                         }
                         if (game->explosion.active && al_get_time() - game->explosion.start_time >= 0.5) {
                             game->explosion.active = false;
