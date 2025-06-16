@@ -49,17 +49,26 @@ typedef struct Explosion {
     float start_time;
 }Explosion;
 
+typedef struct UFO {
+    ALLEGRO_BITMAP *ufo_bitmap;
+    float x;
+    float y;
+    bool alive;
+    float vx;
+}UFO;
+
 typedef struct Game {
     int alien_direction;
     ALLEGRO_FONT *font;
     int score;
     char score_text[32];
+    UFO ufo;
     Explosion explosion;
     Player p1;
     Projectile p_proj;
     Projectile a_proj[MAX_ALIEN_PROJECTILES]; // Alien projectiles array
     ALLEGRO_BITMAP *alien_projectile_bitmap; // single shared bitmap
-    ALLEGRO_TIMER *alien_proj_timer;          // Timer for alien shooting
+    ALLEGRO_TIMER *alien_proj_timer; // Timer for alien shooting
     Alien matrix[5][10];
     bool alien_animating;
     double anim_start_time;
@@ -83,9 +92,10 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display);
 void update_aliens(Alien matrix[5][10], bool *game_over, bool *won, Player *p1, int *direction);
 void update_player(bool *A_pressed, bool *D_pressed, Player *p1);
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,
-                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES]);
+                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES], UFO *ufo);
 bool check_collision(Projectile *proj, Alien *alien);
 void draw_game(Game *game);
+void update_ufo(UFO *ufo);
 void alien_fire(Game *game);
 void update_alien_projectiles(Game *game, Player *p1, bool *game_over);
 void destroy_game(Game *game);

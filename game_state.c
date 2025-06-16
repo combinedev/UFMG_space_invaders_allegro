@@ -77,6 +77,18 @@ void draw_game(Game *game) {
             );
         }
     }
+    if (game->ufo.alive) {
+        al_draw_scaled_bitmap(game->ufo.ufo_bitmap,
+                              0,
+                              0,
+                              al_get_bitmap_width(game->ufo.ufo_bitmap),
+                              al_get_bitmap_height(game->ufo.ufo_bitmap),
+                              game->ufo.x,
+                              game->ufo.y,
+                              al_get_bitmap_width(game->ufo.ufo_bitmap),
+                              al_get_bitmap_height(game->ufo.ufo_bitmap),
+                              0);
+    }
     al_flip_display();
 }
 
@@ -284,7 +296,7 @@ void update_player(bool *A_pressed, bool *D_pressed, Player *p1) {
 }
 
 void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion, int *score,
-                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES]) {
+                       ALLEGRO_SAMPLE *explosion_sfx, Projectile a_proj[MAX_ALIEN_PROJECTILES], UFO *ufo) {
     p->vy = 0;
     p->vy -= ACCEL * 8;
     if (p->vy < -MAX_SPEED) //truncation
@@ -339,10 +351,47 @@ void update_projectile(Projectile *p, Alien matrix[5][10], Explosion *explosion,
                 // Collision detected → Both projectiles die
                 p->alive = false;
                 a_proj[i].alive = false;
+
+                // Spawn explosion at collision point
+                explosion->x = (p->x + a_proj[i].x) / 2; // Midpoint between projectiles
+                explosion->y = (p->y + a_proj[i].y) / 2;
+                explosion->start_time = al_get_time();
+                explosion->active = true;
+
+                // Play explosion sound
+                al_play_sample(explosion_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+
                 break; // No need to check further after hit
             }
         }
     }
+    //hit ufo -> 1000 points
+    if (ufo->alive) {
+        float p_w = al_get_bitmap_width(p->projectile_bitmap) * 2.0; // Assuming player scale
+        float p_h = al_get_bitmap_height(p->projectile_bitmap) * 2.0;
+        float u_w = al_get_bitmap_width(ufo->ufo_bitmap);
+        float u_h = al_get_bitmap_height(ufo->ufo_bitmap);
+        if ( //AABB
+                p->x < ufo->x + u_w &&
+                p->x + p_w > ufo->x &&
+                p->y < ufo->y + u_h &&
+                p->y + p_h > ufo->y
+            ) {
+            // Collision detected → Both projectiles die
+            *score += 1000;
+            p->alive = false;
+            ufo->alive = false;
+
+            // Spawn explosion at collision point
+            explosion->x = ufo->x; // Midpoint between projectiles
+            explosion->y = ufo->y;
+            explosion->start_time = al_get_time();
+            explosion->active = true;
+            // Play explosion sound
+            al_play_sample(explosion_sfx, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+            }
+    }
+
 
 }
 
@@ -415,6 +464,13 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
         return 1;
     }
 
+    //ufo setup
+    game->ufo.ufo_bitmap = al_load_bitmap("assets/ufo.png");
+    game->ufo.alive = false;
+    game->ufo.vx = 3;
+    game->ufo.x = 0 - al_get_bitmap_width(game->ufo.ufo_bitmap);
+    game->ufo.y = 70;
+
     //p_proj reset
     game->p_proj.alive = false;
     game->p_proj.vy = 0;
@@ -426,7 +482,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
         return 1;
     }
 
-    float posx = 0, posy = 70;
+    float posx = 0, posy = 100;
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 10; j++) {
             game->matrix[i][j].x = posx;
@@ -480,7 +536,7 @@ int setup_game(Game *game, ALLEGRO_DISPLAY **display) {
     game->game_timer = al_create_timer(1.0 / FPS); //redraw upon fps rate
     game->alien_timer = al_create_timer(ALIEN_TIC_RATE);
     game->alien_anim_timer = al_create_timer(ALIEN_TIC_RATE - ANIM_OFFSET);
-    game->alien_proj_timer = al_create_timer(1.5); // ← Missing!
+    game->alien_proj_timer = al_create_timer(1.5);
     game->q = al_create_event_queue();
     al_register_event_source(game->q, al_get_keyboard_event_source());
     al_register_event_source(game->q, al_get_display_event_source(*display));
@@ -569,11 +625,12 @@ void start_game_queue(Game *game, State *current_state) {
                         update_player(&game->A_pressed, &game->D_pressed, &game->p1);
                         if (game->p_proj.alive) {
                             update_projectile(&game->p_proj, game->matrix, &game->explosion, &game->score,
-                                              game->explosion_sfx, game->a_proj);
+                                              game->explosion_sfx, game->a_proj, &game->ufo);
                         }
                         if (game->explosion.active && al_get_time() - game->explosion.start_time >= 0.5) {
                             game->explosion.active = false;
                         }
+                        update_ufo(&game->ufo);
                         update_alien_projectiles(game, &game->p1, &game->game_over);
                         game->redraw = true;
                     }
@@ -628,6 +685,32 @@ void destroy_game(Game *game) {
 }
 
 //Additional
+void update_ufo(UFO *ufo) {
+    if (ufo->alive) {
+        ufo->x += ufo->vx;
+        if (ufo->x >= WIN_W + al_get_bitmap_width(ufo->ufo_bitmap)) {
+            ufo->alive = false;
+            ufo->x = 0 - al_get_bitmap_width(ufo->ufo_bitmap);
+        }
+    } else {
+        static float time_until_spawn = 0.0f;  // Not const!
+        static float timer = 0.0f;
+
+        // Initialize time_until_spawn on first run
+        if (timer == 0.0f) {
+            time_until_spawn = 5.0f + (rand() % 10); // 5-15 sec initial delay
+        }
+
+        timer += 1.0f / 60.0f; // Assumes 60 FPS (adjust if needed)
+
+        if (timer >= time_until_spawn) {
+            ufo->alive = true;
+            ufo->x = 0 - al_get_bitmap_width(ufo->ufo_bitmap);
+            timer = 0.0f;
+            time_until_spawn = 5.0f + (rand() % 10); // New random delay
+        }
+    }
+}
 void alien_fire(Game *game) {
     int alive_columns[10];
     int alive_col_count = 0;
