@@ -9,6 +9,7 @@
 typedef struct Menu {
     ALLEGRO_FONT *font;
     char title[40];
+    ALLEGRO_BITMAP *banner;
     char options[2][20];
     ALLEGRO_SAMPLE *menu_music;
     ALLEGRO_SAMPLE *option_sfx;

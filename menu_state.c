@@ -10,6 +10,11 @@ int setup_menu(Menu *menu, ALLEGRO_DISPLAY **display) {
     al_init_acodec_addon();
     al_reserve_samples(16);  // Reserve up to 16 simultaneous sounds
 
+    menu->banner = al_load_bitmap("assets/banner.png");
+    if (!menu->banner) {
+        fprintf(stderr, "Could not load banner\n");
+        return 1;
+    }
     menu->font = al_load_ttf_font("assets/font.ttf", 24, 0);
     if (!menu->font) {
         fprintf(stderr, "Could not load font\n");
@@ -103,6 +108,22 @@ void draw_menu(Menu *menu) {
     }else {
         option_w = al_get_text_width(menu->font, menu->options[1]);
         al_draw_text(menu->font, al_map_rgb(255, 255, 255), (WIN_W - option_w)/2, 200, 0, menu->options[1]);
+    }
+    if (menu->banner) {
+        int banner_width = al_get_bitmap_width(menu->banner) * 0.4;
+        int banner_height = al_get_bitmap_height(menu->banner) * 0.4;
+        int banner_x = ((WIN_W - banner_width)/ 2) -10;
+        int banner_y = 250;  // Position below menu options
+
+        al_draw_scaled_bitmap(
+            menu->banner,
+            0, 0,  // Source x, y
+            al_get_bitmap_width(menu->banner),  // Source width
+            al_get_bitmap_height(menu->banner), // Source height
+            banner_x, banner_y,  // Destination x, y
+            banner_width, banner_height,  // Scaled width, height
+            0  // Flags
+        );
     }
     al_flip_display();
 
