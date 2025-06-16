@@ -33,3 +33,24 @@ To consider extras:
 - Player shields, they collide with alien projectiles and are eventually completely destroyed (own hp var).
 - Physics, like arrest and torque within the ship movement.
 
+### >> [16/06/2025]
+- Game is finished up.
+  
+- Extra mechanics added:
+   * Shields
+   * Player lives UI
+   * State-machine (menu, game, gameover)
+   * Cross-enemy projectiles
+   * UFO passing probability (can you shoot'em down?)
+   * Highscore.txt file register.
+     
+- **Controls:**
+   * *[ A ]* moves the ship to the left
+   * *[ D ]* moves the ship to the right
+   * *[ SPACEBAR ]* shoots a projectile.
+     
+- **Menu navigation:**
+   * *[ S ]* selects down
+   * *[ W ]* selects up
+   * *[ ENTER ]* loads your selection.
+<img height=350em width=500em src="gameplay.png">
