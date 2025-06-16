@@ -2,6 +2,147 @@
 - Arcade game remake with C language and Allegro Vivace lib. 
 - Programming and Developing [PDS] 1 subject assignment, from my Computing Science Bachelor's course.
 
+# Building Space Invaders with Allegro
+
+This project is built using **CMake** and uses the **Allegro 5** game programming library. Below is a complete step-by-step guide for building the project from source.
+
+## ✅ Prerequisites
+
+Make sure the following tools are installed on your system:
+
+### 🔧 Dependencies
+
+* **CMake** ≥ 3.10
+* **GCC** or **Clang** (for compiling)
+* **Allegro 5** and required add-ons:
+
+  * `allegro`
+  * `allegro_audio`
+  * `allegro_acodec`
+  * `allegro_font`
+  * `allegro_ttf`
+  * `allegro_image`
+  * `allegro_primitives`
+
+### 🐟 On Linux (Debian/Ubuntu)
+
+Install all dependencies with:
+
+```bash
+sudo apt update
+sudo apt install cmake g++ \
+    liballegro5-dev liballegro-image5-dev \
+    liballegro-audio5-dev liballegro-acodec5-dev \
+    liballegro-font5-dev liballegro-ttf5-dev \
+    liballegro-primitives5-dev
+```
+
+### 🪟 On Windows
+
+You can either:
+
+* Use **MSYS2**, **vcpkg**, or **conan** to install Allegro 5.
+* Or, build Allegro 5 from source.
+* Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
+
+---
+
+## 📁 Cloning the Repository
+
+First, clone the repository:
+
+```bash
+git clone https://github.com/combinedev/UFMG_space_invaders_allegro.git
+cd UFMG_space_invaders_allegro
+```
+
+---
+
+## ⚙️ Building with CMake
+
+Create a build directory and compile the project:
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+If successful, an executable named `space_invaders` (or similar, depending on your `CMakeLists.txt`) will be generated.
+
+---
+
+## 🎮 Running the Game
+
+After building, run the game from the `build` directory:
+
+```bash
+./space_invaders
+```
+
+> Make sure the `assets/` folder is present **in the same directory as the executable**. The game loads resources like fonts, images, and sounds from that folder.
+
+If you're missing assets, copy them manually:
+
+```bash
+cp -r ../assets .
+```
+
+---
+
+## 🔄 Rebuilding
+
+To clean and rebuild the project:
+
+```bash
+rm -rf build
+mkdir build
+cd build
+cmake ..
+make
+```
+
+---
+
+## 🥮 Testing the Build
+
+To verify everything works:
+
+* Confirm that no build errors occur.
+* Check that the game window opens with working fonts, audio, and sprites.
+
+---
+
+## 🐞 Troubleshooting
+
+**Q: Allegro header not found?**
+👉 Make sure Allegro development packages are installed. On Linux, check with `dpkg -l | grep allegro`.
+
+**Q: Missing fonts/sounds during runtime?**
+👉 Check if the `assets/` folder is in the right place.
+
+**Q: CMake can't find Allegro?**
+👉 You may need to set the `CMAKE_PREFIX_PATH` if Allegro was installed in a custom directory:
+
+```bash
+cmake -DCMAKE_PREFIX_PATH=/path/to/allegro ..
+```
+
+---
+
+## 📦 Optional: Install the Game (Linux)
+
+You can also install the executable system-wide:
+
+```bash
+sudo make install
+```
+
+Make sure your `CMakeLists.txt` defines an `install()` rule, or let us know if you'd like help adding it.
+
+---
+
 ## Dev logs
 ### >> [08/06/2025]
 Studying the game's logic for basic state setup. Notes:
