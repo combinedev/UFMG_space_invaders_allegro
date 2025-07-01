@@ -45,24 +45,6 @@ You can either:
 * Or, build Allegro 5 from source.
 * Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
 
-### Using **vcpkg** to install Allegro5 in Windows
-* Step 1: Clone vcpkg
-```bash
-git clone https://github.com/microsoft/vcpkg.git
-cd vcpkg
-.\bootstrap-vcpkg.bat
-```
-This compiles vcpkg.exe.
-
-* Step 2: Add vcpkg to System PATH (optional but recommended)
-Add the path to your vcpkg folder (e.g. C:\Users\you\vcpkg) to your system environment variable PATH.
-
-* Step 3: Install Allegro5 with MinGW triplet
-```powershell
-vcpkg install allegro5 --triplet x64-mingw-static --host-triplet x64-mingw-static
-```
----
-
 ## 📁 Cloning the Repository
 
 First, clone the repository:
