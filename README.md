@@ -142,6 +142,48 @@ Copy-Item C:\msys64\mingw64\bin\allegro_*.dll . -Force
 ```
 This copies all DLL files starting with allegro_ which your program needs to run.
 
+**You build dir should look like this:**
+```powershell
+C:.
+│   allegro-5.2.dll
+│   allegro-debug-5.2.dll
+│   allegro_acodec-5.2.dll
+│   allegro_acodec-debug-5.2.dll
+│   allegro_audio-5.2.dll
+│   allegro_audio-debug-5.2.dll
+│   allegro_color-5.2.dll
+│   allegro_color-debug-5.2.dll
+│   allegro_dialog-5.2.dll
+│   allegro_dialog-debug-5.2.dll
+│   allegro_font-5.2.dll
+│   allegro_font-debug-5.2.dll
+│   allegro_image-5.2.dll
+│   allegro_image-debug-5.2.dll
+│   allegro_main-5.2.dll
+│   allegro_main-debug-5.2.dll
+│   allegro_memfile-5.2.dll
+│   allegro_memfile-debug-5.2.dll
+│   allegro_monolith-5.2.dll
+│   allegro_monolith-debug-5.2.dll
+│   allegro_physfs-5.2.dll
+│   allegro_physfs-debug-5.2.dll
+│   allegro_primitives-5.2.dll
+│   allegro_primitives-debug-5.2.dll
+│   allegro_ttf-5.2.dll
+│   allegro_ttf-debug-5.2.dll
+│   allegro_video-5.2.dll
+│   allegro_video-debug-5.2.dll
+│   build.ninja
+│   CMakeCache.txt
+│   cmake_install.cmake
+│   highest_score.txt
+│   Makefile
+│   space_invaders.exe
+│
+├───assets
+├───CMakeFiles
+```
+
 ### 5. Run Your Executable
 
 Now inside the build folder, run your program:
