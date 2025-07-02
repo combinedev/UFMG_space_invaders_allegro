@@ -40,7 +40,7 @@ You can either:
 * Use **MSYS2**, **vcpkg**, or **conan** to install Allegro 5.
 * Or, build Allegro 5 from source.
 * Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
-----
+
 ## How to Build Allegro5 Projects on Windows Using MSYS2 and MinGW
 
 ### 1. Install MSYS2 and MinGW-w64
