@@ -6,11 +6,7 @@
 
 This project is built using **CMake** and uses the **Allegro 5** game programming library. Below is a complete step-by-step guide for building the project from source.
 
-## ✅ Prerequisites
-
-Make sure the following tools are installed on your system:
-
-### 🔧 Dependencies
+## 🔧 Dependencies
 
 * **CMake** ≥ 3.10
 * **GCC** or **Clang** (for compiling)
@@ -24,7 +20,7 @@ Make sure the following tools are installed on your system:
   * `allegro_image`
   * `allegro_primitives`
 
-### 🐟 On Linux (Debian/Ubuntu)
+## 🐟 On Linux (Debian/Ubuntu)
 
 Install all dependencies with:
 
@@ -37,107 +33,95 @@ sudo apt install cmake g++ \
     liballegro-primitives5-dev
 ```
 
-### 🪟 On Windows
+## 🪟 On Windows
 
 You can either:
 
 * Use **MSYS2**, **vcpkg**, or **conan** to install Allegro 5.
 * Or, build Allegro 5 from source.
 * Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
+----
+### How to Build Allegro5 Projects on Windows Using MSYS2 and MinGW
 
-## 📁 Cloning the Repository
+**1. Install MSYS2 and MinGW-w64**
 
-First, clone the repository:
+* Download and install MSYS2 from https://www.msys2.org.
 
-```bash
-git clone https://github.com/combinedev/UFMG_space_invaders_allegro.git
-cd UFMG_space_invaders_allegro
+* Open the MSYS2 MinGW 64-bit shell from the Start Menu.
+
+* Update MSYS2 packages (run these commands; restart MSYS2 if prompted):
+
+```msys2
+pacman -Syu
+pacman -Su
 ```
 
----
+* Install the MinGW-w64 toolchain and Allegro5 libraries:
 
-## ⚙️ Building with CMake
+```msys2
+pacman -S mingw-w64-x86_64-toolchain
+pacman -S mingw-w64-x86_64-allegro
+```
 
-Create a build directory and compile the project:
+**2. Set System Environment Variables**
 
-```bash
+* To build from PowerShell or any terminal, add these environment variables:
+
+    * Add `C:\msys64\mingw64\bin` to your `PATH` variable.
+    * Add a new variable `PKG_CONFIG_PATH` with value: `C:\msys64\mingw64\lib\pkgconfig`
+    *  Add a new variable `CMAKE_PREFIX_PATH` with value: `C:\msys64\mingw64`
+
+After adding, restart your terminal sessions to apply changes.
+
+**3. Build Your Project Using CMake**
+
+Open PowerShell or MSYS2 MinGW 64-bit shell and navigate to your project folder:
+
+```powershell
+cd "C:\Users\yourusername\path\to\your\project"
+```
+
+Create and enter the build directory:
+
+```powershell
 mkdir build
 cd build
-cmake ..
-make
 ```
 
-If successful, an executable named `space_invaders` (or similar, depending on your `CMakeLists.txt`) will be generated.
+Run CMake configuration:
 
----
-
-## 🎮 Running the Game
-
-After building, run the game from the `build` directory:
-
-```bash
-./space_invaders
+```powershell
+cmake .. -G "MinGW Makefiles"
 ```
 
-> Make sure the `assets/` folder is present **in the same directory as the executable**. The game loads resources like fonts, images, and sounds from that folder.
+Build the project:
 
-If you're missing assets, copy them manually:
-
-```bash
-cp -r ../assets .
+```powershell
+mingw32-make
 ```
 
----
+**4. Copy Assets and Allegro DLLs to Build Directory**
 
-## 🔄 Rebuilding
+* From your project root, copy the assets folder to the build directory:
 
-To clean and rebuild the project:
-
-```bash
-rm -rf build
-mkdir build
-cd build
-cmake ..
-make
+```powershell
+Copy-Item -Recurse ..\assets .\assets
 ```
 
----
+* Copy all Allegro DLLs from MSYS2 mingw64 bin folder to your build folder:
 
-## 🥮 Testing the Build
-
-To verify everything works:
-
-* Confirm that no build errors occur.
-* Check that the game window opens with working fonts, audio, and sprites.
-
----
-
-## 🐞 Troubleshooting
-
-**Q: Allegro header not found?**
-👉 Make sure Allegro development packages are installed. On Linux, check with `dpkg -l | grep allegro`.
-
-**Q: Missing fonts/sounds during runtime?**
-👉 Check if the `assets/` folder is in the right place.
-
-**Q: CMake can't find Allegro?**
-👉 You may need to set the `CMAKE_PREFIX_PATH` if Allegro was installed in a custom directory:
-
-```bash
-cmake -DCMAKE_PREFIX_PATH=/path/to/allegro ..
+```powershell
+Copy-Item C:\msys64\mingw64\bin\allegro_*.dll . -Force
 ```
+This copies all DLL files starting with allegro_ which your program needs to run.
 
----
+**5. Run Your Executable**
 
-## 📦 Optional: Install the Game (Linux)
-
-You can also install the executable system-wide:
-
-```bash
-sudo make install
+Now inside the build folder, run your program:
+```powershell
+.\space_invaders.exe
 ```
-
-Make sure your `CMakeLists.txt` defines an `install()` rule, or let us know if you'd like help adding it.
+Your program should run and load assets correctly.
 
 ---
 
