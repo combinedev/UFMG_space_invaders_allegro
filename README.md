@@ -22,15 +22,42 @@ This project is built using **CMake** and uses the **Allegro 5** game programmin
 
 ## 🐧 On Linux (Debian/Ubuntu)
 
-Install all dependencies with:
+### Install Allegro and Build Tools (Single Command)
 
 ```bash
-sudo apt update
-sudo apt install cmake g++ \
-    liballegro5-dev liballegro-image5-dev \
-    liballegro-audio5-dev liballegro-acodec5-dev \
-    liballegro-font5-dev liballegro-ttf5-dev \
-    liballegro-primitives5-dev
+sudo apt update && sudo apt install -y \
+  build-essential cmake pkg-config \
+  liballegro5-dev \
+  liballegro-acodec5-dev liballegro-audio5-dev \
+  liballegro-dialog5-dev liballegro-font5-dev \
+  liballegro-image5-dev liballegro-physfs5-dev \
+  liballegro-ttf5-dev
+```
+This command installs: **GCC and Make, CMake, pkg-config (for CMake to locate Allegro) and all Allegro5 modules available in Ubuntu/Debian repositories**
+
+### Build the Project
+```bash
+cd ~/your/project
+mkdir -p build
+cd build
+cmake ..
+make
+```
+
+### Copy Assets and Allegro Shared Libraries
+
+After building, copy required runtime files into your build/ directory:
+```bash
+cp -r ../assets ./assets
+cp /usr/lib/x86_64-linux-gnu/liballegro*.so* .
+```
+This ensures the executable finds all runtime dependencies and resources.
+
+### 5. Run Your Executable
+
+Now inside the build folder, run your program:
+```bash
+.\space_invaders
 ```
 
 ## 🪟 On Windows
@@ -41,7 +68,7 @@ You can either:
 * Or, build Allegro 5 from source.
 * Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
 
-## How to Build Allegro5 Projects on Windows Using MSYS2 and MinGW
+## How to Build on Windows Using MSYS2 and MinGW
 
 ### 1. Install MSYS2 and MinGW-w64
 
@@ -78,7 +105,7 @@ After adding, restart your terminal sessions to apply changes.
 Open PowerShell or MSYS2 MinGW 64-bit shell and navigate to your project folder:
 
 ```powershell
-cd "C:\Users\yourusername\path\to\your\project"
+cd "C:\Users\...\UFMG_space_invaders_allegro-main"
 ```
 
 Create and enter the build directory:
@@ -115,7 +142,7 @@ Copy-Item C:\msys64\mingw64\bin\allegro_*.dll . -Force
 ```
 This copies all DLL files starting with allegro_ which your program needs to run.
 
-### 5. Run Your Executable**
+### 5. Run Your Executable
 
 Now inside the build folder, run your program:
 ```powershell
