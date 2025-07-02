@@ -41,9 +41,9 @@ You can either:
 * Or, build Allegro 5 from source.
 * Then configure your compiler (e.g., MSVC or MinGW) and make sure it's accessible in your `PATH`.
 ----
-### How to Build Allegro5 Projects on Windows Using MSYS2 and MinGW
+## How to Build Allegro5 Projects on Windows Using MSYS2 and MinGW
 
-**1. Install MSYS2 and MinGW-w64**
+### 1. Install MSYS2 and MinGW-w64
 
 * Download and install MSYS2 from https://www.msys2.org.
 
@@ -63,7 +63,7 @@ pacman -S mingw-w64-x86_64-toolchain
 pacman -S mingw-w64-x86_64-allegro
 ```
 
-**2. Set System Environment Variables**
+### 2. Set System Environment Variables
 
 * To build from PowerShell or any terminal, add these environment variables:
 
@@ -73,7 +73,7 @@ pacman -S mingw-w64-x86_64-allegro
 
 After adding, restart your terminal sessions to apply changes.
 
-**3. Build Your Project Using CMake**
+### 3. Build Your Project Using CMake
 
 Open PowerShell or MSYS2 MinGW 64-bit shell and navigate to your project folder:
 
@@ -100,7 +100,7 @@ Build the project:
 mingw32-make
 ```
 
-**4. Copy Assets and Allegro DLLs to Build Directory**
+### 4. Copy Assets and Allegro DLLs to Build Directory
 
 * From your project root, copy the assets folder to the build directory:
 
@@ -115,7 +115,7 @@ Copy-Item C:\msys64\mingw64\bin\allegro_*.dll . -Force
 ```
 This copies all DLL files starting with allegro_ which your program needs to run.
 
-**5. Run Your Executable**
+### 5. Run Your Executable**
 
 Now inside the build folder, run your program:
 ```powershell
