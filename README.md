@@ -20,7 +20,7 @@ This project is built using **CMake** and uses the **Allegro 5** game programmin
   * `allegro_image`
   * `allegro_primitives`
 
-## 🐟 On Linux (Debian/Ubuntu)
+## 🐧 On Linux (Debian/Ubuntu)
 
 Install all dependencies with:
 
